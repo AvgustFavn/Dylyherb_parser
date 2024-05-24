@@ -1,6 +1,9 @@
+import datetime
+
 import requests
-from bs4 import BeautifulSoup
 import xml.etree.ElementTree as ET
+
+from bs4 import BeautifulSoup
 
 
 def get_products(url):
@@ -12,7 +15,6 @@ def get_products(url):
         product_url = f'https://deliherb.ru/{item.find("a")["href"]}'
         product_name = item.find('div', class_='product_title').text
         products.append((product_url, product_name))
-        print(product_url, product_name)
 
     return products
 
@@ -57,12 +59,15 @@ def get_product_data(product_url):
         else:
             product_data['available'] = 0
 
-        print(product_data)
         return product_data
 
 
-def generate_xml(products):
-    root = ET.Element('offers')
+def generate_xml(products, file_name):
+    try:
+        tree = ET.parse(file_name)
+        root = tree.getroot()
+    except (ET.ParseError, FileNotFoundError):
+        root = ET.Element('offers')
 
     for product in products:
         product_xml = ET.SubElement(root, 'offer')
@@ -71,47 +76,72 @@ def generate_xml(products):
             element = ET.SubElement(product_xml, key)
             element.text = str(value)
 
+    # Записываем все обратно в файл
     tree = ET.ElementTree(root)
-    tree.write('products_deliherb.xml')
+    tree.write(file_name, xml_declaration=True, encoding='utf-8')
 
+def main():
+    # Очистить файл перед началом записи
+    open('products_deliherb.xml', 'w').close()
+    print(f'Начало парсера {datetime.datetime.now()}')
+    all_count = 0
+    list_urls = [
+        'https://deliherb.ru/catalog/sostoyaniya-zdorovya',
+        'https://deliherb.ru/catalog/pischevye-dobavki',
+        'https://deliherb.ru/catalog/tovary-dlya-detej',
+        'https://deliherb.ru/catalog/produkty-pitaniya',
+        'https://deliherb.ru/catalog/travy-i-naturalnye-sredstva',
+        'https://deliherb.ru/catalog/sredstva-dlya-vanny-i-gigieny',
+        'https://deliherb.ru/catalog/sport',
+        'https://deliherb.ru/catalog/zootovary',
+        'https://deliherb.ru/catalog/tovary-dlya-doma',
+        'https://deliherb.ru/catalog/sredstva-lichnoj-gigieny-2',
+        'https://deliherb.ru/catalog/travy-2',
+        'https://deliherb.ru/catalog/naturalnye-sredstva-2',
+        'https://deliherb.ru/catalog/krasota',
+        'https://deliherb.ru/catalog/kollektsii-tovarov',
+    ]
 
-if __name__ == '__main__':
-    products_data_l = []
-    page = 1
-    list_urls = [f'https://deliherb.ru/catalog/sostoyaniya-zdorovya?page={page}',
-                 f'https://deliherb.ru/catalog/pischevye-dobavki?page={page}',
-                 f'https://deliherb.ru/catalog/tovary-dlya-detej?page={page}',
-                 f'https://deliherb.ru/catalog/produkty-pitaniya?page={page}',
-                 f'https://deliherb.ru/catalog/travy-i-naturalnye-sredstva?page={page}',
-                 f'https://deliherb.ru/catalog/sredstva-dlya-vanny-i-gigieny?page={page}',
-                 f'https://deliherb.ru/catalog/sport?page={page}',
-                 f'https://deliherb.ru/catalog/zootovary?page={page}',
-                 f'https://deliherb.ru/catalog/tovary-dlya-doma?page={page}',
-                 f'https://deliherb.ru/catalog/sredstva-lichnoj-gigieny-2?page={page}',
-                 f'https://deliherb.ru/catalog/travy-2?page={page}',
-                 f'https://deliherb.ru/catalog/naturalnye-sredstva-2?page={page}',
-                 f'https://deliherb.ru/catalog/krasota?page={page}',
-                 f'https://deliherb.ru/catalog/kollektsii-tovarov?page={page}'
-                 ]
-    for url in list_urls:
-        products = get_products(url)
-        print(url)
+    for url_base in list_urls:
+        page = 1
+        while True:
+            url = f'{url_base}?page={page}'
+            products_data_l = []
+            products = get_products(url)
+            print(url)
+            if len(products) == 0:
+                print('Больше нет страниц')
+                break
+            else:
+                for product_url, product_name in products:
+                    try:
+                        product_data = get_product_data(product_url)
+                        if product_data:
+                            products_data_l.append(product_data)
+                    except:
+                        print(f'Ошибочная ссылка - {product_url}')
 
-        # if page < 2:
-        if len(products) == 0:
-            print('Больше нет страниц')
-            page = 1
-            continue
-        else:
+                existing_skus = set()
+                try:
+                    tree = ET.parse('products_deliherb.xml')
+                    root = tree.getroot()
+                    for offer in root.findall('offer'):
+                        sku = offer.find('vendorarticle').text
+                        all_count += 1
+                        existing_skus.add(sku)
+                except (ET.ParseError, FileNotFoundError):
+                    pass
 
-            for product_url, product_name in products[:3]:
-                product_data = get_product_data(product_url)
-                if product_data:
-                    products_data_l.append(product_data)
+                products_data_l = [
+                    product_data
+                    for product_data in products_data_l
+                    if product_data['vendorarticle'] not in existing_skus
+                ]
 
-            page += 1
-    # else:
-    #     break
+                print(f'{len(products_data_l)} товаров на странице {page}')
+                generate_xml(products_data_l, 'products_deliherb.xml')
+                page += 1
 
+    print(f'Парсер закончил свою работу, все товары {all_count}')
 
-    generate_xml(products_data_l)
+main()
