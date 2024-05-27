@@ -8,9 +8,10 @@ from bs4 import BeautifulSoup
 from multiprocessing import Pool
 
 all_count = 0
-cwd = os.getcwd()
-file_path = f'/Dylyherb_parser/products_deliherb.xml'.replace('\\', '/')
-
+# cwd = os.getcwd()
+cwd = os.path.dirname(os.path.abspath(__file__))
+# file_path = f'/Dylyherb_parser/products_deliherb.xml'.replace('\\', '/')
+file_path = f'{cwd}/products_deliherb.xml'.replace('\\', '/')
 def get_products(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -78,7 +79,6 @@ def generate_xml(products, file_name):
         ET.SubElement(offer, 'name').text = product["name"]
         ET.SubElement(offer, 'url').text = str(product["url"])
         ET.SubElement(offer, 'barcode').text = str(product["barcode"])
-        print(str(product["barcode"]))
         ET.SubElement(offer, 'price').text = str(product["price"])
         ET.SubElement(offer, 'available').text = str(product["available"])
 
@@ -98,10 +98,12 @@ def walk_on_url(url_base):
     while True:
         url = f'{url_base}?page={page}'
         products = get_products(url)
-        with open('/Dylyherb_parser/script.log', 'a') as file:
+        # with open('/Dylyherb_parser/script.log', 'a') as file:
+        with open(f'{cwd}/script.log', 'a') as file:
             file.write(f'{url}\n')
         if len(products) == 0:
-            with open('/Dylyherb_parser/script.log', 'a') as file:
+            # with open('/Dylyherb_parser/script.log', 'a') as file:
+            with open(f'{cwd}/script.log', 'a') as file:
                 file.write(f'Больше нет страниц по ссылке {url_base}\n')
             break
         else:
@@ -116,8 +118,10 @@ def walk_on_url(url_base):
                     if product_data:
                         products_data_l.append(product_data)
                 except Exception as exc:
-                    with open('/Dylyherb_parser/script.log', 'a') as file:
+                    # with open('/Dylyherb_parser/script.log', 'a') as file:
+                    with open(f'{cwd}/script.log', 'a') as file:
                         file.write(f'Ошибочная ссылка\n')
+
 
 
             products_data_l = [
@@ -125,14 +129,15 @@ def walk_on_url(url_base):
                 for product_data in products_data_l
             ]
 
-            with open('/Dylyherb_parser/script.log', 'a') as file:
+            # with open('/Dylyherb_parser/script.log', 'a') as file:
+            with open(f'{cwd}/script.log', 'a') as file:
                 file.write(f'{len(products_data_l)} товаров на странице {page}\n')
             generate_xml(products_data_l, 'products_deliherb.xml')
             page += 1
 
 def main():
-    old_filename = 'products_deliherb.xml'
-    new_filename = 'products_deliherb_last.xml'
+    old_filename = f'{cwd}/products_deliherb.xml'
+    new_filename = f'{cwd}/products_deliherb_last.xml'
     # Удаляем новый файл, если он уже существует
     if os.path.exists(new_filename):
         os.remove(new_filename)
@@ -143,7 +148,8 @@ def main():
 
     # Создаем новый файл с названием старого
     open(old_filename, 'w', encoding='UTF-8').close()
-    with open('/Dylyherb_parser/script.log', 'a') as file:
+    # with open('/Dylyherb_parser/script.log', 'a') as file:
+    with open(f'{cwd}/script.log', 'a') as file:
         file.write(f'Начало парсера {datetime.datetime.now()}\n')
 
     list_urls = [
