@@ -1,10 +1,15 @@
+from multiprocessing import Pool
 import datetime
-
+import concurrent.futures
+import os
 import requests
 import xml.etree.ElementTree as ET
-
 from bs4 import BeautifulSoup
+from multiprocessing import Pool
 
+all_count = 0
+cwd = os.getcwd()
+file_path = f'/Dylyherb_parser/products_deliherb.xml'.replace('\\', '/')
 
 def get_products(url):
     response = requests.get(url)
@@ -61,87 +66,106 @@ def get_product_data(product_url):
 
         return product_data
 
-
 def generate_xml(products, file_name):
-    try:
-        tree = ET.parse(file_name)
-        root = tree.getroot()
-    except (ET.ParseError, FileNotFoundError):
-        root = ET.Element('offers')
-
+    tree = ET.ElementTree()
+    root = ET.Element('offers')
+    tree._setroot(root)
     for product in products:
-        product_xml = ET.SubElement(root, 'offer')
+        offer = ET.SubElement(root, 'offer')
+        ET.SubElement(offer, 'sku').text = str(product["sku"])
+        ET.SubElement(offer, 'vendorarticle').text = str(product["vendorarticle"])
+        ET.SubElement(offer, 'vendor').text = str(product["vendor"])
+        ET.SubElement(offer, 'name').text = product["name"]
+        ET.SubElement(offer, 'url').text = str(product["url"])
+        ET.SubElement(offer, 'barcode').text = str(product["barcode"])
+        print(str(product["barcode"]))
+        ET.SubElement(offer, 'price').text = str(product["price"])
+        ET.SubElement(offer, 'available').text = str(product["available"])
 
-        for key, value in product.items():
-            element = ET.SubElement(product_xml, key)
-            element.text = str(value)
+    # tree = ET.ElementTree(root)
+    with open(file_path, 'a', encoding='utf-8') as f:
+        tree.write(f, encoding='unicode', xml_declaration=True)
 
-    # Записываем все обратно в файл
-    tree = ET.ElementTree(root)
-    tree.write(file_name, xml_declaration=True, encoding='utf-8')
+
+
+def get_product_data_async(product_url):
+    return get_product_data(product_url)
+
+def walk_on_url(url_base):
+    global all_count
+    response = requests.get(url_base)
+    page = 1
+    while True:
+        url = f'{url_base}?page={page}'
+        products = get_products(url)
+        with open('/Dylyherb_parser/script.log', 'a') as file:
+            file.write(f'{url}\n')
+        if len(products) == 0:
+            with open('/Dylyherb_parser/script.log', 'a') as file:
+                file.write(f'Больше нет страниц по ссылке {url_base}\n')
+            break
+        else:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                futures = [executor.submit(get_product_data_async, product_url) for product_url, product_name in
+                       products]
+
+            products_data_l = []
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    product_data = future.result()
+                    if product_data:
+                        products_data_l.append(product_data)
+                except Exception as exc:
+                    with open('/Dylyherb_parser/script.log', 'a') as file:
+                        file.write(f'Ошибочная ссылка\n')
+
+
+            products_data_l = [
+                product_data
+                for product_data in products_data_l
+            ]
+
+            with open('/Dylyherb_parser/script.log', 'a') as file:
+                file.write(f'{len(products_data_l)} товаров на странице {page}\n')
+            generate_xml(products_data_l, 'products_deliherb.xml')
+            page += 1
 
 def main():
-    # Очистить файл перед началом записи
-    open('products_deliherb.xml', 'w').close()
-    print(f'Начало парсера {datetime.datetime.now()}')
-    all_count = 0
+    old_filename = 'products_deliherb.xml'
+    new_filename = 'products_deliherb_last.xml'
+    # Удаляем новый файл, если он уже существует
+    if os.path.exists(new_filename):
+        os.remove(new_filename)
+
+    # Переименовываем старый файл
+    if os.path.exists(old_filename):
+        os.rename(old_filename, new_filename)
+
+    # Создаем новый файл с названием старого
+    open(old_filename, 'w', encoding='UTF-8').close()
+    with open('/Dylyherb_parser/script.log', 'a') as file:
+        file.write(f'Начало парсера {datetime.datetime.now()}\n')
+
     list_urls = [
-        'https://deliherb.ru/catalog/sostoyaniya-zdorovya',
-        'https://deliherb.ru/catalog/pischevye-dobavki',
-        'https://deliherb.ru/catalog/tovary-dlya-detej',
-        'https://deliherb.ru/catalog/produkty-pitaniya',
-        'https://deliherb.ru/catalog/travy-i-naturalnye-sredstva',
-        'https://deliherb.ru/catalog/sredstva-dlya-vanny-i-gigieny',
-        'https://deliherb.ru/catalog/sport',
-        'https://deliherb.ru/catalog/zootovary',
-        'https://deliherb.ru/catalog/tovary-dlya-doma',
-        'https://deliherb.ru/catalog/sredstva-lichnoj-gigieny-2',
-        'https://deliherb.ru/catalog/travy-2',
-        'https://deliherb.ru/catalog/naturalnye-sredstva-2',
-        'https://deliherb.ru/catalog/krasota',
-        'https://deliherb.ru/catalog/kollektsii-tovarov',
+        f'https://deliherb.ru/catalog/sostoyaniya-zdorovya',
+        f'https://deliherb.ru/catalog/pischevye-dobavki',
+        f'https://deliherb.ru/catalog/tovary-dlya-detej',
+        f'https://deliherb.ru/catalog/produkty-pitaniya',
+        f'https://deliherb.ru/catalog/travy-i-naturalnye-sredstva',
+        f'https://deliherb.ru/catalog/sredstva-dlya-vanny-i-gigieny',
+        f'https://deliherb.ru/catalog/sport',
+        f'https://deliherb.ru/catalog/zootovary',
+        f'https://deliherb.ru/catalog/tovary-dlya-doma',
+        f'https://deliherb.ru/catalog/sredstva-lichnoj-gigieny-2',
+        f'https://deliherb.ru/catalog/travy-2',
+        f'https://deliherb.ru/catalog/naturalnye-sredstva-2',
+        f'https://deliherb.ru/catalog/krasota',
+        f'https://deliherb.ru/catalog/kollektsii-tovarov',
     ]
 
-    for url_base in list_urls:
-        page = 1
-        while True:
-            url = f'{url_base}?page={page}'
-            products_data_l = []
-            products = get_products(url)
-            print(url)
-            if len(products) == 0:
-                print('Больше нет страниц')
-                break
-            else:
-                for product_url, product_name in products:
-                    try:
-                        product_data = get_product_data(product_url)
-                        if product_data:
-                            products_data_l.append(product_data)
-                    except:
-                        print(f'Ошибочная ссылка - {product_url}')
+    with Pool() as p:    # создаем пул процессов
+        p.map(walk_on_url, list_urls)    # распределяем url'ы по процессам
 
-                existing_skus = set()
-                try:
-                    tree = ET.parse('products_deliherb.xml')
-                    root = tree.getroot()
-                    for offer in root.findall('offer'):
-                        sku = offer.find('vendorarticle').text
-                        all_count += 1
-                        existing_skus.add(sku)
-                except (ET.ParseError, FileNotFoundError):
-                    pass
 
-                products_data_l = [
-                    product_data
-                    for product_data in products_data_l
-                    if product_data['vendorarticle'] not in existing_skus
-                ]
-
-                print(f'{len(products_data_l)} товаров на странице {page}')
-                generate_xml(products_data_l, 'products_deliherb.xml')
-                page += 1
-
-    print(f'Парсер закончил свою работу, все товары {all_count}')
-
-main()
+if __name__ == '__main__':
+    main()
