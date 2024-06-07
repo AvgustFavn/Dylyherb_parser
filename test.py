@@ -8,10 +8,6 @@ import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 from multiprocessing import Pool
 
-# session = requests.Session()
-# session.proxies = {
-#     'http': f'http//user125167:klw48b@194.61.234.185:8584',
-# }
 all_count = 0
 cwd = os.getcwd()
 # file_path = f'/Dylyherb_parser/products_deliherb.xml'.replace('\\', '/')
@@ -68,17 +64,53 @@ users = [{
 #     }
 
 proxies_dic = [
-    {'https': 'http://user125167:klw48b@45.88.208.43:3485'},
-    {'https': 'http://user125167:klw48b@45.128.131.173:3485'},
-    {'https': 'http://user125167:klw48b@45.86.3.142:3485'},
-    {'https': 'http://user125167:klw48b@45.86.3.161:2855'},
-    {'https': 'http://user125167:klw48b@195.225.96.170:2855'},
-    {'https': 'http://user125167:klw48b@45.88.208.168:2855'},
-    {'https': 'http://user125167:klw48b@45.128.131.72:2855'},
-    {'https': 'http://user125167:klw48b@185.21.140.123:2855'},
-    {'https': 'http://user125167:klw48b@45.90.47.20:2855'},
+    {'https': 'http://user125167:klw48b@185.212.112.78:6740'},
+    {'https': 'http://user125167:klw48b@45.85.64.31:3175'},
+    {'https': 'http://user125167:klw48b@45.85.64.63:3175'},
+    {'https': 'http://user125167:klw48b@45.88.211.40:3175'},
+    {'https': 'http://user125167:klw48b@213.166.95.187:3175'},
+    {'https': 'http://user125167:klw48b@45.86.3.47:3175'},
+    {'https': 'http://user125167:klw48b@185.234.8.194:3175'},
+    {'https': 'http://user125167:klw48b@45.86.3.71:3175'},
+    {'https': 'http://user125167:klw48b@194.32.126.43:3175'},
+    {'https': 'http://user125167:klw48b@185.234.8.133:3175'},
+    {'https': 'http://user125167:klw48b@195.225.96.148:3175'},
+    {'https': 'http://user125167:klw48b@213.166.95.108:3175'},
+    {'https': 'http://user125167:klw48b@212.115.48.15:3175'},
+    {'https': 'http://user125167:klw48b@45.128.130.59:3175'},
+    {'https': 'http://user125167:klw48b@193.160.211.94:3175'},
+    {'https': 'http://user125167:klw48b@213.166.95.73:3175'},
+    {'https': 'http://user125167:klw48b@45.88.208.251:3175'},
+    {'https': 'http://user125167:klw48b@195.69.150.159:3175'},
+    {'https': 'http://user125167:klw48b@45.128.131.20:3175'},
+    {'https': 'http://user125167:klw48b@45.128.131.217:3175'},
+    {'https': 'http://user125167:klw48b@45.89.68.218:3175'},
+    {'https': 'http://user125167:klw48b@193.160.211.200:3175'},
+    {'https': 'http://user125167:klw48b@45.128.130.91:3175'},
+    {'https': 'http://user125167:klw48b@194.32.240.120:3175'},
+    {'https': 'http://user125167:klw48b@45.89.71.180:3175'},
+    {'https': 'http://user125167:klw48b@213.166.95.209:3175'},
 
 ]
+
+list_urls = [
+        f'https://deliherb.ru/catalog/sostoyaniya-zdorovya',
+        f'https://deliherb.ru/catalog/pischevye-dobavki',
+        f'https://deliherb.ru/catalog/tovary-dlya-detej',
+        f'https://deliherb.ru/catalog/produkty-pitaniya',
+        f'https://deliherb.ru/catalog/travy-i-naturalnye-sredstva',
+        f'https://deliherb.ru/catalog/sredstva-dlya-vanny-i-gigieny',
+        f'https://deliherb.ru/catalog/sport',
+        f'https://deliherb.ru/catalog/zootovary',
+        f'https://deliherb.ru/catalog/tovary-dlya-doma',
+        f'https://deliherb.ru/catalog/sredstva-lichnoj-gigieny-2',
+        f'https://deliherb.ru/catalog/travy-2',
+        f'https://deliherb.ru/catalog/naturalnye-sredstva-2',
+        f'https://deliherb.ru/catalog/krasota',
+        f'https://deliherb.ru/catalog/kollektsii-tovarov',
+    ]
+
+products_data_l = []
 
 def is_banned(resp, proxy):
     global proxies_dic
@@ -116,14 +148,30 @@ def get_products(url, sess, proxy):
         'Sec-Fetch-User': '?1',
         'Upgrade-Insecure-Requests': '1'
     }
-    response = requests.request(
-        'get',
-        url=url,
-        proxies=proxy,
-        verify=False,
-        headers=headers,
-        stream=True
-    )
+    try:
+        response = requests.request(
+            'get',
+            url=url,
+            proxies=proxy,
+            verify=False,
+            headers=headers,
+            # stream=True
+        )
+    except:
+        try:
+            time.sleep(5)
+            proxy = random.choice(proxies_dic)
+            response = requests.request(
+                'get',
+                url=url,
+                proxies=proxy,
+                verify=False,
+                headers=headers,
+                # stream=True
+            )
+        except:
+            return []
+
     if is_banned(response, proxy):
         headers = {
             "User-Agent": (random.choice(users))['User-Agent'],
@@ -143,14 +191,29 @@ def get_products(url, sess, proxy):
             'Upgrade-Insecure-Requests': '1'
         }
         proxy = random.choice(proxies_dic)
-        response = requests.request(
-            'get',
-            url=url,
-            proxies=proxy,
-            verify=False,
-            headers=headers,
-            stream=True
-        )
+        try:
+            response = requests.request(
+                'get',
+                url=url,
+                proxies=proxy,
+                verify=False,
+                headers=headers,
+    #             stream=True
+            )
+        except:
+            try:
+                time.sleep(5)
+                proxy = random.choice(proxies_dic)
+                response = requests.request(
+                    'get',
+                    url=url,
+                    proxies=proxy,
+                    verify=False,
+                    headers=headers,
+                    # stream=True
+                )
+            except:
+                return []
         if is_banned(response, proxy):
             return None
 
@@ -183,14 +246,30 @@ def get_product_data(product_url, sess, proxy):
         'Sec-Fetch-User': '?1',
         'Upgrade-Insecure-Requests': '1'
     }
-    response = requests.request(
-        'get',
-        url=product_url,
-        proxies=proxy,
-        verify=False,
-        headers=headers,
-        stream=True
-    )
+    try:
+        response = requests.request(
+            'get',
+            url=product_url,
+            proxies=proxy,
+            verify=False,
+            headers=headers,
+    #         stream=True
+        )
+    except:
+        try:
+            time.sleep(5)
+            proxy = random.choice(proxies_dic)
+            response = requests.request(
+                'get',
+                url=product_url,
+                proxies=proxy,
+                verify=False,
+                headers=headers,
+                #         stream=True
+            )
+        except:
+            return []
+
     if is_banned(response, proxy):
         headers = {
             "User-Agent": (random.choice(users))['User-Agent'],
@@ -210,14 +289,30 @@ def get_product_data(product_url, sess, proxy):
             'Upgrade-Insecure-Requests': '1'
         }
         proxy = random.choice(proxies_dic)
-        response = requests.request(
-            'get',
-            url=product_url,
-            proxies=proxy,
-            verify=False,
-            headers=headers,
-            stream=True
-        )
+        try:
+            response = requests.request(
+                'get',
+                url=product_url,
+                proxies=proxy,
+                verify=False,
+                headers=headers,
+    #             stream=True
+            )
+        except:
+            try:
+                time.sleep(5)
+                proxy = random.choice(proxies_dic)
+                response = requests.request(
+                    'get',
+                    url=product_url,
+                    proxies=proxy,
+                    verify=False,
+                    headers=headers,
+                    #         stream=True
+                )
+            except:
+                return []
+
         if is_banned(response, proxy):
             return None
 
@@ -229,50 +324,76 @@ def get_product_data(product_url, sess, proxy):
     except:
         product_data['sku'] = 0
 
-    product_data['vendorarticle'] = soup.find('label', class_='lfeature').text
-    if product_data['vendorarticle'] == "0":
+    try:
+        product_data['vendorarticle'] = soup.find('label', class_='lfeature').text
+    except:
         with open(f'{cwd}/script.log', 'a') as file:
             print(f'Товар без артикула {product_url}\n')
             file.write(f'Товар без артикула {product_url}\n')
         return None
-    else:
-        product_data['vendor'] = soup.find('div', class_='annot-brand hideable').find('a').text
-        product_data['name'] = soup.find('h1').text
-        product_data['url'] = product_url
-        labels_names = soup.find_all('label', class_='featurename')
-        labels = soup.find_all('label', class_='lfeature')
-        try:
-            num = 0
-            product_data['barcode'] = 0
-            for n in labels_names:
-                if 'код' in n.text:
-                    product_data['barcode'] = int(labels[num].text)
-                    break
-                num += 1
-        except:
-            product_data['barcode'] = 0
-
-        if product_data['barcode'] == 0:
+    if product_data['vendorarticle']:
+        if product_data['vendorarticle'] == "0":
             with open(f'{cwd}/script.log', 'a') as file:
-                print(f'Товар без баркода {product_url}\n')
-                file.write(f'Товар без баркода {product_url}\n')
+                print(f'Товар без артикула {product_url}\n')
+                file.write(f'Товар без артикула {product_url}\n')
             return None
-
-        product_data['price'] = int(soup.find('span', class_='price').text.replace(' ', '').replace('₽', ''))
-
-        if 'США' in labels[1].text:
-            product_data['available'] = 1
         else:
-            product_data['available'] = 0
+            product_data['vendor'] = soup.find('div', class_='annot-brand hideable').find('a').text
+            product_data['name'] = soup.find('h1').text
+            product_data['url'] = product_url
+            labels_names = soup.find_all('label', class_='featurename')
+            labels = soup.find_all('label', class_='lfeature')
+            try:
+                num = 0
+                product_data['barcode'] = 0
+                for n in labels_names:
+                    if 'код' in n.text:
+                        product_data['barcode'] = int(labels[num].text)
+                        break
+                    num += 1
+            except:
+                product_data['barcode'] = 0
 
-        return product_data
+            if product_data['barcode'] == 0:
+                with open(f'{cwd}/script.log', 'a') as file:
+                    print(f'Товар без баркода {product_url}\n')
+                    file.write(f'Товар без баркода {product_url}\n')
+                return None
 
-def generate_xml(products, file_name):
-    tree = ET.ElementTree()
-    root = ET.Element('offers')
-    tree._setroot(root)
+            product_data['price'] = int(soup.find('span', class_='price').text.replace(' ', '').replace('₽', ''))
+
+            if 'США' in labels[1].text:
+                product_data['available'] = 1
+            else:
+                product_data['available'] = 0
+
+            return product_data
+    else:
+        return None
+
+def start_xml(file_path):
+
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.write('<offers>')
+
+def append_to_xml(products, file_path):
+    try:
+        tree = ET.parse(file_path)
+        root = tree.getroot()
+    except ET.ParseError:
+        # Если файл пустой или не является валидным XML-файлом,
+        # создаем корневой элемент offers
+        root = ET.Element('offers')
+    else:
+        # Если корневой элемент не является offers, создаем новый элемент offers
+        if 'offers' not in root.tag:
+            root = ET.Element('offers')
+
+        # Создаем элемент offers
+    offers_element = root
+
     for product in products:
-        offer = ET.SubElement(root, 'offer')
+        offer = ET.SubElement(offers_element, 'offer')
         ET.SubElement(offer, 'sku').text = str(product["sku"])
         ET.SubElement(offer, 'vendorarticle').text = str(product["vendorarticle"])
         ET.SubElement(offer, 'vendor').text = str(product["vendor"])
@@ -282,25 +403,52 @@ def generate_xml(products, file_name):
         ET.SubElement(offer, 'price').text = str(product["price"])
         ET.SubElement(offer, 'available').text = str(product["available"])
 
-    # tree = ET.ElementTree(root)
-    with open(file_path, 'a', encoding='utf-8') as f:
-        tree.write(f, encoding='unicode', xml_declaration=True)
+    # Записываем обновленное дерево в файл
+    with open(file_path, 'w', encoding='utf-8') as f:
+        tree = ET.ElementTree(root)
+        tree.write(f, encoding='unicode')
 
+# def end_xml(file_path):
+#     tree = ET.parse(file_path)
+#     root = tree.getroot()
+#
+#     with open(file_path, 'a', encoding='utf-8') as f:
+#         tree.write(f, encoding='unicode')
 
 
 def get_product_data_async(product_url, sess, proxy):
     time.sleep(random.choice([14, 23, 17, 10, 2]))
     return get_product_data(product_url, sess, proxy)
 
+def check_dict_in_list(lst, key, value):
+    """
+    Проверяет, существует ли в списке словарей словарь с заданным ключом и значением.
+    """
+    for d in lst:
+        if key in d and d[key] == value:
+            return True
+    return False
+
 def walk_on_url(url_base):
     global all_count
+    global products_data_l
+    list_urls.remove(url_base)
     page = 1
     session = requests.Session()
     while True:
+    # while page < 3:
         time.sleep(random.choice([14, 44, 11, 20]))
         url = f'{url_base}?page={page}'
         proxy = random.choice(proxies_dic)
         products = get_products(url, session, proxy)
+        if products is None:
+            time.sleep(random.choice([14, 44, 11, 20]))
+            proxy = random.choice(proxies_dic)
+            products = get_products(url, session, proxy)
+            if products is None:
+                time.sleep(random.choice([14, 44, 11, 20]))
+                proxy = random.choice(proxies_dic)
+                products = get_products(url, session, proxy)
 
         # with open('/Dylyherb_parser/script.log', 'a') as file:
         with open(f'{cwd}/script.log', 'a') as file:
@@ -311,21 +459,19 @@ def walk_on_url(url_base):
                 file.write(f'Больше нет страниц по ссылке {url_base}\n')
             return
         else:
-            # with concurrent.futures.ThreadPoolExecutor() as executor:
-            #     futures = [executor.submit(get_product_data_async, product_url) for product_url, product_name in
-            #            products]
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                futures = []
-                for product_url, product_name in products:
-                    future = executor.submit(get_product_data_async, product_url, session, proxy)
-                    futures.append(future)
+            url_prods = []
+            for product_url, product_name in products:
+                future = get_product_data_async(product_url, session, proxy)
+                url_prods.append(future)
 
-            products_data_l = []
-            for future in concurrent.futures.as_completed(futures):
+            for product_data in url_prods:
                 try:
-                    product_data = future.result()
                     if product_data:
-                        products_data_l.append(product_data)
+                        print(product_data)
+                        if check_dict_in_list(products_data_l, 'sku', product_data['sku']):
+                            continue
+                        else:
+                            products_data_l.append(product_data)
                     else:
                         with open(f'{cwd}/script.log', 'a') as file:
                             file.write(f'Видимо, умер прокси...\n')
@@ -344,8 +490,9 @@ def walk_on_url(url_base):
 
             # with open('/Dylyherb_parser/script.log', 'a') as file:
             with open(f'{cwd}/script.log', 'a') as file:
-                file.write(f'{len(products_data_l)} товаров на странице {page}\n')
-            generate_xml(products_data_l, 'products_deliherb.xml')
+                file.write(f'На странице {page}\n')
+            append_to_xml(products_data_l, 'products_deliherb.xml')
+            # generate_xml(products_data_l, 'products_deliherb.xml')
             page += 1
 
 
@@ -362,26 +509,10 @@ def main():
 
     # Создаем новый файл с названием старого
     open(old_filename, 'w', encoding='UTF-8').close()
+    # start_xml(old_filename)
     # with open('/Dylyherb_parser/script.log', 'a') as file:
     with open(f'{cwd}/script.log', 'a') as file:
         file.write(f'Начало парсера {datetime.datetime.now()}\n')
-
-    list_urls = [
-        f'https://deliherb.ru/catalog/sostoyaniya-zdorovya',
-        f'https://deliherb.ru/catalog/pischevye-dobavki',
-        f'https://deliherb.ru/catalog/tovary-dlya-detej',
-        f'https://deliherb.ru/catalog/produkty-pitaniya',
-        f'https://deliherb.ru/catalog/travy-i-naturalnye-sredstva',
-        f'https://deliherb.ru/catalog/sredstva-dlya-vanny-i-gigieny',
-        f'https://deliherb.ru/catalog/sport',
-        f'https://deliherb.ru/catalog/zootovary',
-        f'https://deliherb.ru/catalog/tovary-dlya-doma',
-        f'https://deliherb.ru/catalog/sredstva-lichnoj-gigieny-2',
-        f'https://deliherb.ru/catalog/travy-2',
-        f'https://deliherb.ru/catalog/naturalnye-sredstva-2',
-        f'https://deliherb.ru/catalog/krasota',
-        f'https://deliherb.ru/catalog/kollektsii-tovarov',
-    ]
 
     with Pool() as p:
         p.map(walk_on_url, list_urls)
